@@ -1,0 +1,62 @@
+need averages of all metrics
+what test cases were used to collect averages and rational behind the argument
+
+To trigger start of the program on all nodes:
+	To start all programs at the same time - search for file - if not found sleep for 1 min
+	Each program ready reads the file to count the 
+
+To log the output: 
+	Use log file
+	Use database
+Arguments
+Name and location of the shared file, Processid
+
+Config File structure
+NODES
+16
+RUN
+1
+MAX_QUORUM_SIZE
+8
+ALGORITHM
+2
+QUORUM
+1,2,3,4
+MESSAGE_ORDER
+T1;1,2,3,4
+T2;5,6,7,8
+T3;9,10,11,12
+T4;13,14,15,16
+
+Login to AOS box - net01
+ssh dxs134530@csoracle.utdallas.edu
+Enter password: matq!23
+/usr/local/bin/oam.pl
+/opt/oracle/app/csoracle/product/12.1.0/dbhome_1/bin/sqlplus
+Enter password: matq!23
+###Connected now to SQL
+
+Clean table before every run
+Database table: log
+Columns:
+Algorithm
+Run# - to be set from config file
+message#
+message
+sender
+receiver
+timestamp
+type of message
+sequence_no
+When was record read if it was my message
+
+
+
+Name of Master Class - AOSTokens
+For Maekawa - MA
+For New - TQ
+
+Ramya - Document to set up the db, example of config file and explain fields, Quorums list
+Katie - Setting up Code repository, Shell script to connect to database, read requests from a text file and generate sql stmts
+Sruthi - Email TA, Maekawa Algorithm
+Diksha - Coding for new algorithm, fetching averages, SQL queries

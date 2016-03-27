@@ -1,0 +1,195 @@
+	//************************************************************************************************************************************************************
+	//************************************************************************************************************************************************************	
+/*	public void databaseThread()//Process for database thread
+	{
+		
+		System.out.println("Executing Database thread...");
+		
+		iRequestLength = iRequest.length;//Get the # of requests to make
+		int iTerminate = -1;
+		int iRequestCounter = 0;
+		
+	    try
+	    {
+	    	
+	    	Connection conConnection = makeConnection();//Establish SQL connection with the database
+	    	
+	    	if (conConnection != null)
+	    	{
+	    		
+	    		String sSQLQuery = "SELECT COUNT(*) FROM log WHERE MESSAGE = 'Initiate' AND run = " + iRun + " AND algorithm = " + iAlgo;		    
+			    System.out.println("SQL Query:  " + sSQLQuery);
+	    	
+		    	checkInitiate(conConnection, sSQLQuery); //Check if the "Initiate" record is in the database table for this run and algorithm
+		    	
+		    	//Now we can start execution of the new algorithm
+		    	sSQLQuery = "SELECT DISTINCT COUNT(*) FROM log WHERE MESSAGE = 'Terminate' AND run = " + iRun + " AND algorithm = " + iAlgo;		    
+			    //System.out.println("SQL Query:  " + sSQLQuery);
+		    	
+			    iTerminate = checkTerminate(conConnection, sSQLQuery); //Check if the "Terminate" record is in the database table for this run and algorithm
+			    
+			    while(iTerminate == 0)//Execute the while loop till there is no record called terminate for the run and algorithm
+			    {
+			    	
+			    	for (int iIndex1 = 0; iIndex1 < iRequestLength; iIndex1++)
+			    	{
+			    		
+			    		for(int iIndex2 = 0; iIndex2 < iRequest[iIndex1].length; iIndex2++) //Setup request order
+						{
+			    			
+			    			if(iRequest[iIndex1][iIndex2] == iProcessId)//If it is current processes turn then send requesting CS requests to all quorum memebers
+			    			{
+			    				
+			    				for(int iIndex3 = 0; iIndex3 < iQuorum.length; iIndex3++)
+			    				{
+			    					
+			    					iSequenceNo = iSequenceNo + 1;
+			    					bRequestingCS = true;
+			    					String sSQLInsert = "INSERT INTO log VALUES(" + iAlgo + ", " + iRun + ", message_no.NEXTVAL, 'Requesting Critical Section', " + iProcessId + ", " + iQuorum[iIndex3] + ", SYSDATE, 0, " + iSequenceNo + ", NULL);";
+			    					
+			    					Statement sSQLStmt = null;
+			    					 
+			    				    try //Check if initiate record exists in the database
+			    				    {
+			    				    	
+			    				        sSQLStmt = conConnection.createStatement();
+			    				        sSQLStmt.executeUpdate(sSQLInsert);
+			    				         
+			    				    }//End of try block for executing sql query
+			    				    catch (SQLException e) 
+			    				    {
+			    				    
+			    				    	System.err.println("Issue inserting requesting CS requests to quorum members...");
+			    				    
+			    				    }//End of catch block to catch SQLException
+			    				    
+			    				    //Send UDP message to the quorum members
+			    				    try
+			    				    {
+			    				    
+			    				    	InetAddress iaIPAddress = null;
+			    				    	
+			    				    	iaIPAddress = getIPAddress(iIndex3);
+			    				    	
+			    				    	DatagramSocket dsServerSocket = new DatagramSocket(9876); 
+			    				    	byte[] bySendData  = new byte[1024]; 
+			    				    	
+			    				    	while(true)
+			    				    	{
+			    				    		
+			    				    		String sMessage = iProcessId + "," + iSequenceNo + ",0";
+			    				    		bySendData = sMessage.getBytes(); 
+			    				    
+			    				            DatagramPacket sendPacket = new DatagramPacket(bySendData, bySendData.length, iaIPAddress, 9876); 
+			    				    
+			    				            dsServerSocket.send(sendPacket);
+			    				    		
+			    				    		
+			    				    	}//End of while loop 	    				    	
+			    				    	
+			    				    }
+			    				    catch (Exception e) 
+			    				    {
+			    				        System.out.println("Issue with sending UDP message...");
+			    				        System.exit(1);
+			    				    }
+			    					
+			    				}//End of for loop for iIndex3
+			    				
+			    				
+			    			}//End of if(iRequest[iIndex1][iIndex2] == iProcessId)
+			    			else
+			    			{
+			    				
+			    				iRequestCounter = iRequestCounter + 1;
+			    				
+			    			}//End of else for if(iRequest[iIndex1][iIndex2] == iProcessId)
+			    			
+						}//End of for loop for iIndex2			    		
+			    		
+			    	}//End of for loop for iIndex1
+			    	
+			    	if(iOutStandingReplies == 0 && bToken == true && bRequestingCS == true && bCS == false)//If all processes from quorum have sent the locked replies to the current process and it possesses the token then enter CS
+			    	{
+			    		
+			    		bCS = true; //Set this value to true as the process will not enter CS
+			    		//executeCS(conConnection); //Execute CS
+			    		bCS = false; //Set value to false as the process is done executing CS
+			    		iOutStandingReplies = iQuorum.length; //Reset the outstanding replies count
+			    		
+			    	}
+			    				    	
+			    	//Check for the terminate record before executing another iteration of the while loop
+			    	sSQLQuery = "SELECT DISTINCT COUNT(*) FROM log WHERE MESSAGE = 'Terminate' AND run = " + iRun + " AND algorithm = " + iAlgo;		    
+				    System.out.println("SQL Query:  " + sSQLQuery);
+			    	
+				    iTerminate = checkTerminate(conConnection, sSQLQuery); //Check if the "Terminate" record is in the database table for this run and algorithm
+				    
+				    
+			    }//End of while(iTerminate != 1) 
+		    	
+	    		
+	    	}//End of if (conConnection != null)
+	    	else
+	    	{
+	    		
+	    		System.err.println("Error establishing connection to database...");
+	    		
+	    	}//End of else (conConnection != null)
+	    	
+	    }//End of try block for checking for initiate query
+	    catch(SQLException e)
+	    {
+	    	
+	    	System.err.println("Issue establishing Sql connection");
+	    	
+	    }//End of catch block for SQL Exception
+	    catch (ClassNotFoundException e) 
+		{
+ 
+			System.out.println("Class Not Found Exception...");
+			System.exit(1);
+ 
+		}//End of catch block for Class not found exception
+		
+	}//End of databaseThread() method */
+	
+	
+	//************************************************************************************************************************************************************
+	//************************************************************************************************************************************************************
+	/*public void executeCS(Connection conTempConnection)//Inserts a record in log table that the current process entered its CS
+	{
+		
+		 Statement sSQLStmt = null;
+		 String sTempSQL = "INSERT INTO log VALUES (" + iAlgo + ", " + iRun + "message_no.nextval, 'Executing Critical Section', " + iProcessId + ", null, sysdate, 2, " + iSequenceNo + ", null)";
+		 
+		    try//Outer try block to execute Insert statement
+		    {
+		    	
+		        sSQLStmt = conTempConnection.createStatement();
+		        sSQLStmt.executeUpdate(sTempSQL);
+		        
+		        try//Inner try to imitate executing CS
+		        {
+
+		            Thread.sleep(100);//Sleep to imitate executing CS
+		            
+		        }//End of Inner try to imitate executing CS
+		        catch(Exception e)
+		        {
+		        	
+		           System.out.println("Error while trying to sleep ...");
+		           
+		        }//End of catch for Inner catch to imitate executing CS
+		        
+		        
+		    }//End of Outer try block to execute Insert statement
+		    catch (SQLException e) 
+		    {
+		    
+		    	System.err.println("Issue executing Insert statement for executing CS....");
+		    
+		    }//End of catch block to catch SQLException
+		    		
+	}//End of executeCS()  method*/
+	

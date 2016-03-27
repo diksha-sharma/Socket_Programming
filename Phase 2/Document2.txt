@@ -1,0 +1,34 @@
+	public int sortChannel(Connection conTempConnection)//Returns the process id of the process whose request should be processed next
+	{
+		
+		Statement sSQLStmt = null;
+		String sTempSQL = "SELECT sender, sequence_no FROM log WHERE run = " + iRun + " and algorithm = " + iAlgo + " and receiver = " + iProcessId + " ORDER BY sequence_no, sender";
+		int iTempSender = -1;
+		int iTempSequenceNo = -1;
+
+		try//Outer try block to execute select query
+		{
+			
+			 ResultSet rsResultSet = sSQLStmt.executeQuery(sTempSQL);
+			 
+			if (rsResultSet.absolute(1))
+	        {
+	        	
+	        	iTempSender = rsResultSet.getInt(1);
+	        	iTempSequenceNo = rsResultSet.getInt(2);
+	        	
+	        	updateSequenceNo(iTempSequenceNo);
+			    
+	        }//End of if (rsResultSet.absolute(1))
+		    
+		}//End of Outer try block to execute select query
+		catch (SQLException e) 
+		{
+		
+			System.err.println("Issue executing select statement for finding next request to process....");
+		
+		}//End of catch block to catch SQLException
+
+		return iTempSender;
+		
+	}//End of sortChannel() method
